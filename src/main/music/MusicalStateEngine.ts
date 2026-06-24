@@ -41,7 +41,7 @@ export class MusicalStateEngine {
     const beat = (Math.floor(beatPosition) % this.config.clock.beatsPerBar) + 1;
     const bar = Math.floor(beatPosition / this.config.clock.beatsPerBar) + 1;
 
-    const arrangement = this.arrangement.update(world, bar, beat);
+    const arrangement = this.arrangement.update(world, bar, beat, now);
     const harmony = this.harmony.update(world, arrangement, now);
 
     return {

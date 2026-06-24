@@ -7,6 +7,16 @@ type Condition = { sensor: string; above?: number; below?: number; between?: [nu
 export class ArrangementEngine {
   private state: ArrangementState;
 
+  private pendingScene: string | null = null;
+
+  private transitionStartMs: number | null = null;
+
+  private previousBar = 1;
+
+  private previousBeat = 1;
+
+  private hasReceivedFirstUpdate = false;
+
   constructor(private config: AppConfig) {
     this.state = {
       scene: 'calm',
@@ -25,12 +35,52 @@ export class ArrangementEngine {
     this.config = next;
   }
 
-  update(world: WorldState, bar: number, beat: number): ArrangementState {
-    const scene = this.pickScene(world);
-    const sceneDef = this.config.arrangement.scenes[scene] ?? {};
+  update(world: WorldState, bar: number, beat: number, now = performance.now()): ArrangementState {
+    const desiredScene = this.pickScene(world);
+    const currentSceneDef = this.config.arrangement.scenes[this.state.scene] ?? {};
+
+    if (!this.hasReceivedFirstUpdate) {
+      this.hasReceivedFirstUpdate = true;
+      this.state.scene = desiredScene;
+    }
+
+    if (desiredScene !== this.state.scene && desiredScene !== this.pendingScene) {
+      const targetDef = this.config.arrangement.scenes[desiredScene] ?? {};
+      if (targetDef.interrupt) {
+        this.startTransition(desiredScene, now);
+      } else {
+        this.pendingScene = desiredScene;
+      }
+    }
+
+    if (this.pendingScene && this.shouldApplyAtBoundary(bar, beat)) {
+      this.startTransition(this.pendingScene, now);
+      this.pendingScene = null;
+    }
+
+    const transitionDuration = Math.max(0, this.config.arrangement.transition.defaultDurationMs);
+    const hasTransition = this.state.transition && this.transitionStartMs !== null;
+    const transitionStartMs = this.transitionStartMs ?? now;
+    const transitionProgress = hasTransition && transitionDuration > 0 ? Math.min(1, (now - transitionStartMs) / transitionDuration) : hasTransition ? 1 : 0;
+
+    if (hasTransition && transitionProgress >= 1) {
+      this.state.scene = this.state.transition!.toScene;
+      this.state.transition = undefined;
+      this.transitionStartMs = null;
+    }
+
+    const scene = this.state.scene;
+    const sceneDef = this.config.arrangement.scenes[scene] ?? currentSceneDef;
     const intensity = Math.max(world.sensors.windSpeed?.normalizedValue ?? 0, world.sensors.boatSpeed?.normalizedValue ?? 0);
     const tension = Math.max(world.sensors.heel?.normalizedValue ?? 0, world.sensors.windGust?.normalizedValue ?? 0, world.sensors.depth?.normalizedValue ?? 0);
-    const density = this.extractDensity(sceneDef.layers ?? {});
+    const blendedLayers = this.state.transition
+      ? this.blendLayers(
+          this.config.arrangement.scenes[this.state.transition.fromScene]?.layers ?? {},
+          this.config.arrangement.scenes[this.state.transition.toScene]?.layers ?? {},
+          transitionProgress,
+        )
+      : sceneDef.layers ?? {};
+    const density = this.extractDensity(blendedLayers);
     const phraseLength = Math.max(1, this.config.arrangement.phraseLengthBars);
 
     this.state = {
@@ -41,17 +91,19 @@ export class ArrangementEngine {
       phrasePosition: ((bar - 1) % phraseLength) / phraseLength,
       bar,
       beat,
-      activeLayers: sceneDef.layers ?? {},
-      activeMotifs: Object.keys(sceneDef.layers ?? {}).filter((layerName) => layerName.toLowerCase().includes('warning') || layerName.toLowerCase().includes('accent')),
-      transition:
-        this.state.scene !== scene
-          ? {
-              fromScene: this.state.scene,
-              toScene: scene,
-              progress: 1,
-            }
-          : undefined,
+      activeLayers: blendedLayers,
+      activeMotifs: this.extractMotifs(blendedLayers),
+      transition: this.state.transition
+        ? {
+            ...this.state.transition,
+            progress: transitionProgress,
+          }
+        : undefined,
     };
+
+    this.previousBar = bar;
+    this.previousBeat = beat;
+
     return this.state;
   }
 
@@ -67,6 +119,64 @@ export class ArrangementEngine {
       return 0.25;
     }
     return values.reduce((sum, value) => sum + value, 0) / values.length;
+  }
+
+  private extractMotifs(layers: Record<string, any>): string[] {
+    const motifs: string[] = [];
+    for (const [layerName, layer] of Object.entries(layers)) {
+      if (typeof layer?.motif === 'string') {
+        motifs.push(layer.motif);
+      }
+      const lower = layerName.toLowerCase();
+      if (lower.includes('warning') || lower.includes('accent') || lower.includes('motif')) {
+        motifs.push(layerName);
+      }
+    }
+    return [...new Set(motifs)];
+  }
+
+  private blendLayers(fromLayers: Record<string, any>, toLayers: Record<string, any>, progress: number): Record<string, any> {
+    const blended: Record<string, any> = {};
+    const names = new Set([...Object.keys(fromLayers), ...Object.keys(toLayers)]);
+    for (const name of names) {
+      const from = fromLayers[name] ?? {};
+      const to = toLayers[name] ?? {};
+      const fromGain = typeof from.gain === 'number' ? from.gain : from.enabled ? 1 : 0;
+      const toGain = typeof to.gain === 'number' ? to.gain : to.enabled ? 1 : 0;
+      const fromDensity = typeof from.density === 'number' ? from.density : from.enabled ? 1 : 0;
+      const toDensity = typeof to.density === 'number' ? to.density : to.enabled ? 1 : 0;
+      blended[name] = {
+        ...to,
+        enabled: progress < 1 ? Boolean(from.enabled || to.enabled) : Boolean(to.enabled),
+        gain: fromGain + (toGain - fromGain) * progress,
+        density: fromDensity + (toDensity - fromDensity) * progress,
+      };
+    }
+    return blended;
+  }
+
+  private startTransition(toScene: string, now: number): void {
+    if (toScene === this.state.scene) {
+      return;
+    }
+    this.state.transition = {
+      fromScene: this.state.scene,
+      toScene,
+      progress: 0,
+    };
+    this.transitionStartMs = now;
+  }
+
+  private shouldApplyAtBoundary(bar: number, beat: number): boolean {
+    const quantizeTo = this.config.arrangement.transition.quantizeTo;
+    if (quantizeTo === 'beat') {
+      return beat !== this.previousBeat;
+    }
+    if (quantizeTo === 'bar') {
+      return beat === 1 && bar !== this.previousBar;
+    }
+    const phraseLength = Math.max(1, this.config.arrangement.phraseLengthBars);
+    return beat === 1 && bar !== this.previousBar && (bar - 1) % phraseLength === 0;
   }
 
   private pickScene(world: WorldState): string {
