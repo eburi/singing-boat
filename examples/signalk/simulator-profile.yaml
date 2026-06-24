@@ -1,0 +1,9 @@
+profiles:
+  calm_harbor:
+    description: Light motion at dock
+  steady_sailing:
+    description: Stable sailing baseline
+  gusty_reach:
+    description: Frequent wind gusts and heel
+  shallow_approach:
+    description: Low depth warning approach

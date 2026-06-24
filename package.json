@@ -1,0 +1,60 @@
+{
+  "name": "singing-boat",
+  "version": "1.0.0",
+  "description": "Signal K to arranged MIDI desktop bridge",
+  "author": "Erich Buri <erich.buri@gmail.com>",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/eburi/singing-boat"
+  },
+  "type": "module",
+  "main": "dist/main/index.js",
+  "scripts": {
+    "dev": "electron-vite dev",
+    "build": "tsc --noEmit && electron-vite build",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit",
+    "package": "electron-builder --dir",
+    "make": "electron-builder"
+  },
+  "dependencies": {
+    "@tonaljs/chord": "^4.10.0",
+    "@julusian/midi": "^3.2.2",
+    "@tonaljs/note": "^4.12.0",
+    "@tonaljs/scale": "^4.13.3",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "ws": "^8.18.0",
+    "yaml": "^2.8.1",
+    "zod": "^3.25.76"
+  },
+  "devDependencies": {
+    "@types/node": "^22.15.30",
+    "@types/react": "^18.3.23",
+    "@types/react-dom": "^18.3.7",
+    "@types/ws": "^8.18.1",
+    "@vitejs/plugin-react": "^4.7.0",
+    "electron": "^31.7.7",
+    "electron-builder": "^25.1.8",
+    "electron-vite": "^2.3.0",
+    "typescript": "^5.8.3",
+    "vite": "^5.4.19",
+    "vitest": "^2.1.9"
+  },
+  "build": {
+    "appId": "com.singingboat.app",
+    "productName": "Singing Boat",
+    "files": [
+      "dist/**/*",
+      "package.json",
+      "examples/**/*"
+    ],
+    "mac": {
+      "target": "dmg"
+    },
+    "win": {
+      "target": "nsis"
+    }
+  }
+}

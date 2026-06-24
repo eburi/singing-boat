@@ -1,0 +1,102 @@
+version: 1
+app:
+  name: Singing Boat
+  randomSeed: singing-boat-v1
+signalk:
+  enabled: true
+  protocol: ws
+  host: localhost
+  port: 3000
+  version: v1
+  subscribe: self
+  token: null
+  reconnect:
+    minDelayMs: 500
+    maxDelayMs: 10000
+    jitter: true
+  stalePolicy:
+    defaultStaleAfterMs: 5000
+    onDisconnect: fade_then_silence
+    fadeMs: 3000
+midi:
+  output:
+    mode: selected_or_virtual
+    preferredName: Singing Boat
+    createVirtual: true
+  panicOnStop: true
+  sendClock: false
+  channels:
+    melody: 1
+clock:
+  bpm:
+    base: 84
+    min: 60
+    max: 128
+    source: windSpeed
+    amount: 0.15
+  beatsPerBar: 4
+  phraseLengthBars: 8
+  swing: 0
+sensors:
+  windSpeed:
+    path: environment.wind.speedApparent
+    sourceUnits: m/s
+    displayUnits: kn
+    normalize:
+      min: 0
+      max: 20
+      curve: easeInOut
+    smoothing:
+      type: ema
+      alpha: 0.12
+    staleAfterMs: 5000
+harmony:
+  key: D
+  mode: dorian
+  progression:
+    type: roman
+    chords: [i7, IV7, VIImaj7, v7]
+    advance:
+      mode: time
+      sensor: windSpeed
+      thresholds: [0.2, 0.45, 0.7]
+      barsPerChord: 4
+  quantize:
+    enabled: true
+    allowPassingTones: true
+    passingToneProbability: 0.15
+  voiceLeading:
+    mode: commonTone
+    maxLeapSemitones: 7
+  tension:
+    sources:
+      - sensor: windSpeed
+        weight: 1
+motifs: {}
+arrangement:
+  level: 2
+  phraseLengthBars: 8
+  transition:
+    defaultDurationMs: 4000
+    quantizeTo: bar
+    mode: crossfade_layers_common_tone
+  scenes:
+    steady_sailing:
+      when:
+        all:
+          - sensor: windSpeed
+            above: 0
+      layers: {}
+mappings:
+  - id: wind-expression
+    source: windSpeed
+    target:
+      type: cc
+      channel: melody
+      controller: 11
+    transform:
+      curve: easeInOut
+      min: 20
+      max: 110
+    smoothing:
+      rampMs: 500

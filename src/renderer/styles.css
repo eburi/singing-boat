@@ -1,0 +1,248 @@
+:root {
+  --bg-0: #0a1a23;
+  --bg-1: #102b38;
+  --bg-2: #14384a;
+  --surface: rgba(255, 255, 255, 0.08);
+  --surface-strong: rgba(255, 255, 255, 0.14);
+  --text: #ecf6fa;
+  --muted: #acd1dc;
+  --accent: #4ad6c9;
+  --warn: #ff735a;
+  --ok: #44e19f;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: 'Space Grotesk', sans-serif;
+  color: var(--text);
+  background: radial-gradient(circle at 10% 10%, #1f6074 0%, var(--bg-1) 32%, var(--bg-0) 100%);
+  min-height: 100vh;
+}
+
+.app {
+  padding: 18px;
+}
+
+.hero {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 16px;
+  padding: 14px;
+  border: 1px solid var(--surface-strong);
+  border-radius: 14px;
+  background: linear-gradient(140deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.04));
+}
+
+.hero h1 {
+  margin: 0;
+  font-size: 1.65rem;
+}
+
+.hero p {
+  margin: 6px 0 0;
+  color: var(--muted);
+}
+
+.hero-status {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.layout {
+  display: grid;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.panel {
+  grid-column: span 6;
+  border: 1px solid var(--surface-strong);
+  background: var(--surface);
+  border-radius: 12px;
+  padding: 12px;
+  backdrop-filter: blur(3px);
+  animation: fadeIn 280ms ease;
+}
+
+.panel h2,
+.panel h3 {
+  margin-top: 0;
+}
+
+.panel:nth-child(5),
+.panel:nth-child(6),
+.panel:nth-child(7) {
+  grid-column: span 12;
+}
+
+.grid.two {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.row {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin: 8px 0;
+}
+
+button {
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text);
+  border-radius: 8px;
+  padding: 6px 10px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+button:hover {
+  border-color: var(--accent);
+}
+
+button.danger {
+  border-color: var(--warn);
+}
+
+button.link {
+  background: transparent;
+  border: 0;
+  color: var(--accent);
+  padding: 0;
+}
+
+.status {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 0.85rem;
+}
+
+.status-connected {
+  background: rgba(68, 225, 159, 0.2);
+  color: var(--ok);
+}
+
+.status-disconnected {
+  background: rgba(255, 115, 90, 0.2);
+  color: #ffb8ad;
+}
+
+.status-connecting,
+.status-reconnecting {
+  background: rgba(74, 214, 201, 0.2);
+  color: var(--accent);
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.87rem;
+}
+
+.table th,
+.table td {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+  padding: 5px;
+  text-align: left;
+}
+
+.editor {
+  width: 100%;
+  min-height: 280px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: #0b1e28;
+  color: #d8eff7;
+  padding: 10px;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.83rem;
+}
+
+.kv {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  gap: 4px;
+}
+
+.kv li {
+  display: flex;
+  justify-content: space-between;
+  border-bottom: 1px dashed rgba(255, 255, 255, 0.15);
+  padding-bottom: 4px;
+}
+
+.list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.list.compact li {
+  margin: 3px 0;
+}
+
+.list.monitor {
+  max-height: 260px;
+  overflow: auto;
+  display: grid;
+  gap: 4px;
+}
+
+.list.monitor li {
+  display: grid;
+  grid-template-columns: 140px 1fr 120px;
+  gap: 8px;
+  align-items: baseline;
+  font-size: 0.82rem;
+  padding: 3px 0;
+  border-bottom: 1px dotted rgba(255, 255, 255, 0.15);
+}
+
+.list.monitor code {
+  font-family: 'IBM Plex Mono', monospace;
+}
+
+.muted {
+  color: var(--muted);
+}
+
+.selected,
+.validation {
+  font-size: 0.9rem;
+  color: var(--muted);
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(3px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (max-width: 1100px) {
+  .panel {
+    grid-column: span 12;
+  }
+  .hero {
+    flex-direction: column;
+  }
+  .list.monitor li {
+    grid-template-columns: 1fr;
+  }
+}

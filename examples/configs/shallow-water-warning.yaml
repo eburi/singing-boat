@@ -1,0 +1,120 @@
+version: 1
+app:
+  name: Singing Boat
+  randomSeed: singing-boat-v1
+signalk:
+  enabled: true
+  protocol: ws
+  host: localhost
+  port: 3000
+  version: v1
+  subscribe: self
+  token: null
+  reconnect:
+    minDelayMs: 500
+    maxDelayMs: 10000
+    jitter: true
+  stalePolicy:
+    defaultStaleAfterMs: 5000
+    onDisconnect: panic
+    fadeMs: 3000
+midi:
+  output:
+    mode: selected_or_virtual
+    preferredName: Singing Boat
+    createVirtual: true
+  panicOnStop: true
+  sendClock: false
+  channels:
+    melody: 1
+    warnings: 4
+clock:
+  bpm:
+    base: 84
+    min: 60
+    max: 128
+    source: boatSpeed
+    amount: 0.15
+  beatsPerBar: 4
+  phraseLengthBars: 8
+  swing: 0
+sensors:
+  depth:
+    path: navigation.depth.belowTransducer
+    sourceUnits: m
+    displayUnits: m
+    normalize:
+      min: 1
+      max: 30
+      invert: true
+      curve: easeInOut
+    smoothing:
+      type: ema
+      alpha: 0.2
+    staleAfterMs: 5000
+  boatSpeed:
+    path: navigation.speedThroughWater
+    sourceUnits: m/s
+    displayUnits: kn
+    normalize:
+      min: 0
+      max: 5
+      curve: linear
+    smoothing:
+      type: ema
+      alpha: 0.2
+    staleAfterMs: 5000
+harmony:
+  key: D
+  mode: dorian
+  progression:
+    type: roman
+    chords: [i7, IV7, VIImaj7, v7]
+    advance:
+      mode: time
+      sensor: depth
+      thresholds: [0.8]
+      barsPerChord: 4
+  quantize:
+    enabled: true
+    allowPassingTones: false
+    passingToneProbability: 0
+  voiceLeading:
+    mode: commonTone
+    maxLeapSemitones: 7
+  tension:
+    sources:
+      - sensor: depth
+        weight: 1
+motifs:
+  shallowWarning:
+    type: warning
+    channel: warnings
+    trigger:
+      sensor: depth
+      above: 0.8
+      hysteresis: 0.1
+    rhythm:
+      grid: 1/4
+      repeats: 3
+    pitch:
+      degrees: [1, 5, 1]
+      octave: 5
+    velocity:
+      fixed: 115
+arrangement:
+  level: 2
+  phraseLengthBars: 8
+  transition:
+    defaultDurationMs: 300
+    quantizeTo: beat
+    mode: crossfade_layers_common_tone
+  scenes:
+    shallow_water:
+      when:
+        any:
+          - sensor: depth
+            above: 0.8
+      layers:
+        shallowWarning: { enabled: true }
+mappings: []
